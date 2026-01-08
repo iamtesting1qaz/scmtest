@@ -1,27 +1,33 @@
 import * as express from "express";
 
-interface Route {
-    method: 'get' | 'post' | 'put' | 'delete' | 'patch';
-    path: string;
-    middlewares: express.RequestHandler[];
-    handler: express.RequestHandler;
-}
-
 export class CustomRouter {
     public router: express.Router;
-    private routes: Route[] = [];
 
     constructor() {
         this.router = express.Router();
     }
 
-    public registerRoute(method: 'get' | 'post' | 'put' | 'delete' | 'patch', path: string, middlewares: express.RequestHandler[], handler: express.RequestHandler) {
-        this.routes.push({ method, path, middlewares, handler });
+    /**
+     * Register a route directly on the underlying Express router.
+     * Routes are applied immediately when registered (no deferred applyRoutes call required).
+     */
+    public registerRoute(
+        method: 'get' | 'post' | 'put' | 'delete' | 'patch',
+        path: string,
+        middlewares: express.RequestHandler[],
+        handler: express.RequestHandler
+    ) {
+        // Use a typed any-index to call the framework-native method directly.
+        (this.router as any)[method](path, ...middlewares, handler);
     }
 
+    /**
+     * Kept for backward compatibility. Previously routes were registered and then
+     * applied via applyRoutes(); that is no longer necessary because registerRoute
+     * attaches directly to the Express router. This method is a no-op.
+     */
     public applyRoutes() {
-        for (const route of this.routes) {
-            this.router[route.method](route.path, ...route.middlewares, route.handler);
-        }
+        // No-op: routes are registered immediately in registerRoute.
+        // Consider removing calls to applyRoutes() throughout the codebase.
     }
 }
